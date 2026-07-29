@@ -1,6 +1,8 @@
 import sqlite3
+import os
 from contextlib import contextmanager
-from config import DB_PATH
+
+DB_PATH = os.path.join('/tmp', 'robux_shop.db')
 
 
 def get_db():
