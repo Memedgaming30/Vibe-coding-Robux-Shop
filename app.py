@@ -16,6 +16,13 @@ from discord_notify import send_discord
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
+# ── Ensure DB + admin exist on every request ─────────────────────────
+
+@app.before_request
+def ensure_db():
+    init_db()
+    bootstrap_admin()
+
 # ── Database helpers ─────────────────────────────────────────────────
 
 def db():
@@ -375,7 +382,6 @@ def webhook_handler():
         ).fetchone()
 
         if tx:
-            # Credit user robux, deduct admin stock — in one transaction
             conn.execute("BEGIN IMMEDIATE")
             try:
                 conn.execute(
@@ -404,7 +410,6 @@ def webhook_handler():
                     f"(ref={ref}, tx={event.get('txHash')})"
                 )
 
-                # Discord notification
                 send_discord(
                     title="💎 Robux Purchase Confirmed",
                     description=f"@{user['game_username']} bought {tx['robux_amount']} Robux",
