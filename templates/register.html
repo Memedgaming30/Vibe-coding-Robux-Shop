@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — RobuxShop{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Create Account</h1>
+  <p class="auth-sub">We've generated a random email for you. Use it or type your own — just remember it!</p>
+  <form method="POST">
+    <label>Email</label>
+    <input type="text" name="email" value="{{ suggested_email }}" required>
+    <label>Password <span class="hint">(6+ characters)</span></label>
+    <input type="password" name="password" minlength="6" required>
+    <p class="warning-box">Write down your email &amp; password. There's no recovery.</p>
+    <button type="submit" class="btn full">Create Account</button>
+  </form>
+  <p class="auth-footer">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+</div>
+{% endblock %}

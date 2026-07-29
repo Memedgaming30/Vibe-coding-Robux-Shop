@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}RobuxShop — Buy Robux with Crypto{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Buy Robux <span class="accent">Instantly</span></h1>
+  <p class="subtitle">Pay with USDT on BSC Testnet. Robux delivered to your account in seconds.</p>
+</section>
+
+<section class="packages">
+  <h2>Choose a Package</h2>
+  <div class="package-grid">
+    {% for pkg in packages %}
+    <div class="package-card {% if pkg.label == 'Popular' %}popular{% endif %}">
+      {% if pkg.label == 'Popular' %}<div class="badge">Most Popular</div>{% endif %}
+      <div class="pkg-icon">R$</div>
+      <div class="pkg-amount">{{ "{:,}".format(pkg.robux) }}</div>
+      <div class="pkg-label">Robux</div>
+      <div class="pkg-price">{{ pkg.usdt }} USDT</div>
+      {% if user and user.game_username %}
+        <a href="{{ url_for('buy', robux_amount=pkg.robux) }}" class="btn">Buy Now</a>
+      {% elif user %}
+        <a href="{{ url_for('setup_username') }}" class="btn">Set Username First</a>
+      {% else %}
+        <a href="{{ url_for('register') }}" class="btn">Sign Up to Buy</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="how-it-works">
+  <h2>How It Works</h2>
+  <div class="steps-row">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Create account &amp; set your game username</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Pick a Robux package and send USDT</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Robux credited instantly after on-chain confirmation</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

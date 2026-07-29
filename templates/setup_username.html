@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Set Your Username — RobuxShop{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Choose Your Username</h1>
+  <p class="auth-sub">This is how other players see you. Pick something cool.</p>
+  <form method="POST">
+    <label>Game Username</label>
+    <div class="username-input">
+      <span class="at-prefix">@</span>
+      <input type="text" name="username" placeholder="memed" minlength="3" required autofocus>
+    </div>
+    <p class="hint">Letters, numbers, underscores. At least 3 characters.</p>
+    <button type="submit" class="btn full">Set Username</button>
+  </form>
+</div>
+{% endblock %}

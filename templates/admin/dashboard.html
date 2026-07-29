@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Admin — RobuxShop{% endblock %}
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<div class="admin-stats">
+  <div class="stat-card">
+    <div class="stat-value">R$ {{ "{:,}".format(stock.robux) }}</div>
+    <div class="stat-label">Robux in Stock</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ user_count }}</div>
+    <div class="stat-label">Players</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ confirmed_count }} / {{ tx_count }}</div>
+    <div class="stat-label">Confirmed / Total Txs</div>
+  </div>
+</div>
+
+<section class="admin-section">
+  <h2>Manage Stock</h2>
+  <form method="POST" action="{{ url_for('admin_update_stock') }}" class="stock-form">
+    <input type="number" name="robux" value="{{ stock.robux }}" min="0" step="100">
+    <button type="submit" class="btn">Update Stock</button>
+  </form>
+</section>
+
+<section class="admin-section">
+  <h2>Players</h2>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Username</th><th>Email</th><th>Robux</th><th>Joined</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>@{{ u.game_username or '—' }}</td>
+          <td>{{ u.email }}</td>
+          <td>R$ {{ "{:,}".format(u.robux) }}</td>
+          <td>{{ u.created_at[:10] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-section">
+  <h2>Recent Transactions</h2>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Player</th><th>Robux</th><th>USDT</th><th>Status</th><th>Tx Hash</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for tx in recent_txns %}
+        <tr class="status-{{ tx.status|lower }}">
+          <td>@{{ tx.game_username or '?' }}</td>
+          <td>{{ "{:,}".format(tx.robux_amount) }}</td>
+          <td>{{ tx.usdt_amount }}</td>
+          <td><span class="tx-status">{{ tx.status }}</span></td>
+          <td>
+            {% if tx.tx_hash %}
+            <a href="https://testnet.bscscan.com/tx/{{ tx.tx_hash }}" target="_blank">
+              {{ tx.tx_hash[:12] }}…
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ tx.created_at[:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

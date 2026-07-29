@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}RobuxShop{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="{{ url_for('index') }}" class="logo">
+        <span class="logo-icon">R$</span> RobuxShop
+      </a>
+      <div class="nav-links">
+        {% if user %}
+          {% if user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+          {% endif %}
+          {% if user.game_username %}
+            <a href="{{ url_for('account') }}">@{{ user.game_username }}</a>
+          {% endif %}
+          <span class="robux-badge">R$ {{ "{:,}".format(user.robux) }}</span>
+          <a href="{{ url_for('logout') }}" class="btn-sm">Logout</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn-sm">Login</a>
+          <a href="{{ url_for('register') }}" class="btn-sm btn-primary">Sign Up</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>RobuxShop — Testnet Demo &middot; Powered by CryptoRails &middot; BSC Testnet USDT</p>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

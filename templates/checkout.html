@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ robux_amount }} Robux{% endblock %}
+{% block content %}
+<div class="checkout-wrap">
+  <div class="checkout-card">
+    <h1>Checkout</h1>
+    <div class="order-summary">
+      <div class="order-line"><span>Package</span><strong>{{ "{:,}".format(robux_amount) }} Robux</strong></div>
+      <div class="order-line"><span>Price</span><strong>{{ usdt_amount }} USDT</strong></div>
+      <div class="order-line"><span>Network</span><strong>BSC Testnet</strong></div>
+      <div class="order-line"><span>Token</span><strong>USDT</strong></div>
+    </div>
+
+    <button id="pay-btn" class="btn full">Generate Payment Address</button>
+
+    <div id="payment-area" style="display:none">
+      <div class="deposit-box">
+        <label>Send exactly <strong>{{ usdt_amount }} USDT</strong> to:</label>
+        <div class="address-display" id="deposit-address">—</div>
+        <button class="btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('deposit-address').textContent)">Copy Address</button>
+      </div>
+
+      <div class="signals">
+        <div class="signal client">
+          <div class="signal-label">On-chain Detection</div>
+          <div class="signal-value" id="sig-client">Waiting for deposit…</div>
+        </div>
+        <div class="signal server">
+          <div class="signal-label">Settlement (Webhook)</div>
+          <div class="signal-value" id="sig-server">Waiting…</div>
+        </div>
+      </div>
+
+      <div id="confirmed-box" style="display:none" class="confirmed-box">
+        <div class="confirmed-icon">✓</div>
+        <div class="confirmed-text">
+          <strong>{{ "{:,}".format(robux_amount) }} Robux</strong> credited to your account!
+        </div>
+        <div class="confirmed-detail" id="confirmed-detail"></div>
+        <a href="{{ url_for('account') }}" class="btn">View Account</a>
+      </div>
+
+      <pre id="log" class="checkout-log"></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+import { watchDeposits } from "https://esm.sh/deposit-watch";
+
+const ROBUX = {{ robux_amount }};
+const USDT = {{ usdt_amount }};
+const CHAIN_ID = {{ chain_id }};
+const TOKEN_ADDRESS = "{{ token_address }}";
+
+const logEl = document.getElementById("log");
+const sigClient = document.getElementById("sig-client");
+const sigServer = document.getElementById("sig-server");
+
+function log(msg) {
+  const ts = new Date().toISOString().slice(11, 19);
+  logEl.textContent += ts + "  " + msg + "\n";
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+document.getElementById("pay-btn").addEventListener("click", async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = "Generating…";
+
+  const resp = await fetch("/api/create-deposit", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ robux_amount: ROBUX, usdt_amount: USDT }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    log("Error: " + JSON.stringify(err));
+    btn.disabled = false;
+    btn.textContent = "Retry";
+    return;
+  }
+
+  const { address, reference } = await resp.json();
+  document.getElementById("deposit-address").textContent = address;
+  document.getElementById("payment-area").style.display = "block";
+  btn.style.display = "none";
+  log("Deposit address: " + address);
+  log("Reference: " + reference);
+  log("Send " + USDT + " USDT (BSC Testnet) to the address above.");
+
+  const targets = [
+    { address, tokenAddress: TOKEN_ADDRESS, chainId: CHAIN_ID },
+  ];
+
+  const result = await watchDeposits(targets, {
+    config: { title: "RobuxShop", theme: "dark" },
+    detect: "positive",
+    pollIntervalMs: 5000,
+    onDeposit: async (evt) => {
+      sigClient.textContent = "Deposit seen: " + evt.deltaFormatted;
+      sigClient.parentElement.classList.add("settled");
+      log("onDeposit (client): " + evt.deltaFormatted);
+
+      sigServer.textContent = "Consolidating…";
+      const r = await fetch("/api/deposits/notify", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          address: evt.target.address,
+          chainId: evt.target.chainId,
+          amount: evt.deltaFormatted,
+          tokenAddress: evt.target.tokenAddress,
+        }),
+      });
+      if (r.status === 202) {
+        log("Consolidation pending (insufficient balance) — retrying…");
+      } else if (r.ok) {
+        log("Consolidation queued. Waiting for webhook confirmation…");
+      }
+    },
+  });
+
+  if (result.status === "funded") {
+    log("Funded! Polling for settlement…");
+    const txRef = reference + "-consolidate";
+    pollSettlement(txRef);
+  }
+});
+
+async function pollSettlement(reference) {
+  for (let i = 0; i < 120; i++) {
+    try {
+      const r = await fetch("/api/tx-status/" + encodeURIComponent(reference));
+      if (r.ok) {
+        const data = await r.json();
+        if (data.status === "CONFIRMED") {
+          sigServer.textContent = "Confirmed!";
+          sigServer.parentElement.classList.add("settled");
+          log("SETTLED: +" + ROBUX + " Robux credited!");
+          const box = document.getElementById("confirmed-box");
+          box.style.display = "block";
+          if (data.tx_hash) {
+            document.getElementById("confirmed-detail").innerHTML =
+              'Tx: <a href="https://testnet.bscscan.com/tx/' + data.tx_hash +
+              '" target="_blank">' + data.tx_hash.slice(0, 16) + '…</a>' +
+              ' · Net: ' + (data.net_amount || '?') + ' USDT';
+          }
+          return;
+        }
+        if (data.status === "FAILED") {
+          sigServer.textContent = "Failed";
+          log("FAILED: " + (data.error_message || "unknown"));
+          return;
+        }
+      }
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  sigServer.textContent = "Timed out";
+  log("Timed out waiting for confirmation.");
+}
+</script>
+{% endblock %}

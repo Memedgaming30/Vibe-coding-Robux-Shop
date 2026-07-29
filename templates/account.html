@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}@{{ user.game_username }} — RobuxShop{% endblock %}
+{% block content %}
+<div class="account-header">
+  <div class="avatar">{{ user.game_username[0]|upper }}</div>
+  <div>
+    <h1>@{{ user.game_username }}</h1>
+    <p class="account-email">{{ user.email }}</p>
+  </div>
+</div>
+
+<div class="balance-card">
+  <div class="balance-label">Your Robux Balance</div>
+  <div class="balance-amount">R$ {{ "{:,}".format(user.robux) }}</div>
+  <a href="{{ url_for('index') }}" class="btn">Buy More Robux</a>
+</div>
+
+<section class="history">
+  <h2>Transaction History</h2>
+  {% if txns %}
+  <div class="tx-list">
+    {% for tx in txns %}
+    <div class="tx-row status-{{ tx.status|lower }}">
+      <div class="tx-info">
+        <div class="tx-amount">+{{ "{:,}".format(tx.robux_amount) }} Robux</div>
+        <div class="tx-detail">{{ tx.usdt_amount }} USDT &middot; {{ tx.created_at[:16] }}</div>
+      </div>
+      <div class="tx-right">
+        <span class="tx-status">{{ tx.status }}</span>
+        {% if tx.tx_hash %}
+        <a href="https://testnet.bscscan.com/tx/{{ tx.tx_hash }}" target="_blank" class="tx-link">View Tx ↗</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No transactions yet. <a href="{{ url_for('index') }}">Buy your first Robux!</a></p>
+  {% endif %}
+</section>
+{% endblock %}
